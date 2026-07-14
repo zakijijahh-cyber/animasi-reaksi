@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Animasi Reaksi Pembakaran Propana</title>
+<style>
+  :root{
+    --bg-deep:#0B1B2B;
+    --bg-panel:#122A40;
+    --c-carbon:#3A3F44;
+    --c-carbon-edge:#7A8288;
+    --c-hydro:#F4F7FA;
+    --c-hydro-edge:#B9C2CC;
+    --c-oxy:#E4573D;
+    --c-oxy-edge:#B93A24;
+    --c-flame1:#FFC845;
+    --c-flame2:#FF7A30;
+    --ink:#EAF2F8;
+    --ink-dim:#9FB3C4;
+    --accent:#4FD8C4;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; background:var(--bg-deep);
+    font-family:'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1020px; margin:0 auto; padding:26px 24px 34px;
+  }
+  h1{
+    font-size:22px; letter-spacing:.5px; margin:0 0 4px;
+    font-weight:700;
+  }
+  .sub{
+    color:var(--ink-dim); font-size:13.5px; margin:0 0 18px;
+  }
+  .equation{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    background:var(--bg-panel); border:1px solid rgba(255,255,255,.06);
+    border-radius:14px; padding:14px 10px; margin-bottom:16px;
+    font-size:22px; font-weight:700; flex-wrap:wrap;
+  }
+  .eq-term{display:flex; align-items:baseline; gap:2px;}
+  .eq-term sub{font-size:13px; font-weight:600;}
+  .eq-c{color:var(--c-carbon-edge);}
+  .eq-h{color:var(--c-hydro);}
+  .eq-o{color:var(--c-oxy);}
+  .eq-plus{color:var(--ink-dim); font-weight:400; margin:0 4px;}
+  .eq-arrow{color:var(--accent); font-size:24px; margin:0 8px;}
+  .eq-energy{color:var(--c-flame2);}
+
+  .legend{
+    display:flex; gap:18px; justify-content:center; margin-bottom:14px;
+    font-size:12.5px; color:var(--ink-dim);
+  }
+  .legend span{display:flex; align-items:center; gap:6px;}
+  .dot{width:12px;height:12px;border-radius:50%; display:inline-block; border:1px solid rgba(0,0,0,.25);}
+
+  .stage-frame{
+    position:relative; background:radial-gradient(ellipse at 50% 20%, #16344E 0%, #0E2438 60%, #0A1C2C 100%);
+    border-radius:18px; border:1px solid rgba(255,255,255,.07);
+    overflow:hidden; box-shadow:0 20px 50px -20px rgba(0,0,0,.6);
+  }
+  .stage{
+    position:relative; width:1000px; height:480px; margin:0 auto;
+    transform-origin:top left;
+  }
+  .zone-label{
+    position:absolute; top:12px; font-size:12px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--ink-dim); font-weight:600;
+  }
+  .zone-label.left{left:40px;}
+  .zone-label.right{left:560px;}
+
+  .atom{
+    position:absolute; border-radius:50%; top:0; left:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:700; color:#0B1B2B;
+    transition: transform 1.8s cubic-bezier(.65,0,.35,1), box-shadow .4s ease;
+    will-change:transform;
+  }
+  .atom.C{width:40px;height:40px; background:var(--c-carbon); border:2px solid var(--c-carbon-edge); color:var(--c-hydro); font-size:12px;}
+  .atom.H{width:20px;height:20px; background:var(--c-hydro); border:2px solid var(--c-hydro-edge); color:#33424D;}
+  .atom.O{width:32px;height:32px; background:var(--c-oxy); border:2px solid var(--c-oxy-edge); color:#fff;}
+
+  .bond{
+    position:absolute; height:4px; background:rgba(234,242,248,.28); border-radius:2px;
+    top:0; left:0; transform-origin:0 50%;
+    transition:opacity .6s ease;
+  }
+  .bond.fade{opacity:0;}
+
+  .arrow-zone{
+    position:absolute; left:460px; top:220px; width:80px; height:40px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .arrow-zone svg{width:80px; height:40px;}
+  .arrow-zone path{stroke:var(--accent); stroke-width:3; fill:none;}
+
+  .burst{
+    position:absolute; left:500px; top:240px; width:10px; height:10px;
+    transform:translate(-50%,-50%) scale(0);
+    border-radius:50%;
+    background:radial-gradient(circle, #FFF6D6 0%, var(--c-flame1) 35%, var(--c-flame2) 60%, rgba(255,122,48,0) 75%);
+    opacity:0;
+    pointer-events:none;
+  }
+  .burst.go{
+    animation: burstAnim 1.4s ease-out forwards;
+  }
+  @keyframes burstAnim{
+    0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
+    15%{ transform:translate(-50%,-50%) scale(1); opacity:1; }
+    55%{ transform:translate(-50%,-50%) scale(9); opacity:.9; }
+    100%{ transform:translate(-50%,-50%) scale(16); opacity:0; }
+  }
+
+  .energy-tag{
+    position:absolute; left:500px; top:180px; transform:translateX(-50%);
+    font-size:13px; font-weight:700; color:var(--c-flame1);
+    opacity:0; transition:opacity .5s ease;
+    text-shadow:0 0 12px rgba(255,140,40,.7);
+    white-space:nowrap;
+  }
+  .energy-tag.show{opacity:1;}
+
+  .caption-bar{
+    margin-top:16px; background:var(--bg-panel); border:1px solid rgba(255,255,255,.06);
+    border-radius:14px; padding:14px 18px; min-height:24px;
+    font-size:14.5px; color:var(--ink); text-align:center;
+    transition:opacity .3s ease;
+  }
+  .caption-bar b{color:var(--accent);}
+
+  .controls{
+    display:flex; justify-content:center; gap:12px; margin-top:16px;
+  }
+  button.ctrl{
+    background:linear-gradient(180deg,#5FE6D2,#33B7A2);
+    border:none; color:#062A26; font-weight:700; font-size:14px;
+    padding:11px 22px; border-radius:999px; cursor:pointer;
+    box-shadow:0 8px 18px -8px rgba(79,216,196,.6);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  button.ctrl:hover{transform:translateY(-1px); box-shadow:0 10px 22px -6px rgba(79,216,196,.7);}
+  button.ctrl:active{transform:translateY(0);}
+  button.ctrl.secondary{
+    background:transparent; border:1.5px solid rgba(255,255,255,.25); color:var(--ink);
+    box-shadow:none;
+  }
+
+  .progress{
+    position:relative; height:5px; border-radius:3px; background:rgba(255,255,255,.08);
+    margin-top:14px; overflow:hidden;
+  }
+  .progress-fill{
+    position:absolute; left:0; top:0; height:100%; width:0%;
+    background:linear-gradient(90deg,var(--accent),#FFC845);
+    transition:width .3s linear;
+  }
+
+  .footer-note{
+    text-align:center; color:var(--ink-dim); font-size:11.5px; margin-top:14px; line-height:1.6;
+  }
+
+  @media (max-width:1040px){
+    .stage-frame{ overflow-x:auto; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Reaksi Pembakaran Propana</h1>
+  <p class="sub">Animasi konsep &mdash; kekekalan atom C, H, dan O pada reaksi pembakaran sempurna.</p>
+
+  <div class="equation">
+    <span class="eq-term eq-c">C<sub>3</sub><span class="eq-h">H<sub>8</sub></span></span>
+    <span class="eq-plus">+</span>
+    <span class="eq-term">5<span class="eq-o">O<sub>2</sub></span></span>
+    <span class="eq-arrow">&#10230;</span>
+    <span class="eq-term">3<span class="eq-c">C</span><span class="eq-o">O<sub>2</sub></span></span>
+    <span class="eq-plus">+</span>
+    <span class="eq-term">4<span class="eq-h">H<sub>2</sub></span><span class="eq-o">O</span></span>
+    <span class="eq-plus">+</span>
+    <span class="eq-energy">energi</span>
+  </div>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--c-carbon); border-color:var(--c-carbon-edge);"></i>Karbon (C)</span>
+    <span><i class="dot" style="background:var(--c-hydro); border-color:var(--c-hydro-edge);"></i>Hidrogen (H)</span>
+    <span><i class="dot" style="background:var(--c-oxy); border-color:var(--c-oxy-edge);"></i>Oksigen (O)</span>
+  </div>
+
+  <div class="stage-frame">
+    <div class="stage" id="stage">
+      <div class="zone-label left">Reaktan</div>
+      <div class="zone-label right">Produk</div>
+      <svg id="bondSvg" width="1000" height="480" style="position:absolute; top:0; left:0; pointer-events:none;"></svg>
+      <div id="atomLayer"></div>
+      <div class="arrow-zone">
+        <svg viewBox="0 0 80 40"><path d="M2,20 H70 M58,10 L70,20 L58,30"/></svg>
+      </div>
+      <div class="burst" id="burst"></div>
+      <div class="energy-tag" id="energyTag">+ energi (panas &amp; cahaya)</div>
+    </div>
+  </div>
+
+  <div class="caption-bar" id="caption">Tekan <b>Mulai</b> untuk melihat animasi reaksi.</div>
+  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="controls">
+    <button class="ctrl" id="playBtn">&#9654; Mulai Animasi</button>
+    <button class="ctrl secondary" id="resetBtn">&#8635; Ulangi</button>
+  </div>
+
+  <p class="footer-note">
+    Dibuat untuk keperluan edukasi kimia SMA &middot; Reaksi eksoterm pembakaran sempurna propana (C&#8323;H&#8328;).<br>
+    File HTML ini dapat direkam layar menjadi video/GIF lalu diunggah ke Canva, atau di-host online dan ditautkan lewat fitur Embed di Canva.
+  </p>
+</div>
+
+<script>
+const atomLayer = document.getElementById('atomLayer');
+const bondSvg = document.getElementById('bondSvg');
+const caption = document.getElementById('caption');
+const burst = document.getElementById('burst');
+const energyTag = document.getElementById('energyTag');
+const progressFill = document.getElementById('progressFill');
+
+// ---- Reactant molecule builders ----
+function propaneAtoms(){
+  // Chain C-C-C, y=260
+  const cs = [
+    {id:'C1', x:130, y:260}, {id:'C2', x:200, y:260}, {id:'C3', x:270, y:260}
+  ];
+  const hs = [
+    {id:'H1', x:85, y:220}, {id:'H2', x:85, y:300}, {id:'H3', x:130, y:200},
+    {id:'H4', x:200, y:200}, {id:'H5', x:200, y:320},
+    {id:'H6', x:315, y:200}, {id:'H7', x:335, y:260}, {id:'H8', x:315, y:320}
+  ];
+  const bonds = [
+    ['C1','C2'], ['C2','C3'],
+    ['C1','H1'], ['C1','H2'], ['C1','H3'],
+    ['C2','H4'], ['C2','H5'],
+    ['C3','H6'], ['C3','H7'], ['C3','H8']
+  ];
+  return {cs, hs, bonds};
+}
+function o2Atoms(){
+  // 5 O2 molecules in a column, x=420
+  const pairs = [
+    ['O1','O2',40], ['O3','O4',130], ['O5','O6',220], ['O7','O8',320], ['O9','O10',410]
+  ];
+  const os = [];
+  const bonds = [];
+  pairs.forEach(([a,b,y])=>{
+    os.push({id:a, x:400, y});
+    os.push({id:b, x:436, y});
+    bonds.push([a,b]);
+  });
+  return {os, bonds};
+}
+
+// ---- Product molecule builders ----
+function co2Targets(){
+  // 3 CO2 stacked, x center 640
+  const rows = [110, 240, 370];
+  const mapping = [
+    {c:'C1', o1:'O1', o2:'O2'},
+    {c:'C2', o1:'O3', o2:'O4'},
+    {c:'C3', o1:'O5', o2:'O6'}
+  ];
+  const targets = {};
+  const bonds = [];
+  mapping.forEach((m,i)=>{
+    const y = rows[i];
+    targets[m.c] = {x:640, y:y};
+    targets[m.o1] = {x:590, y:y};
+    targets[m.o2] = {x:690, y:y};
+    bonds.push([m.o1, m.c]);
+    bonds.push([m.c, m.o2]);
+  });
+  return {targets, bonds};
+}
+function h2oTargets(){
+  // 4 H2O, x center 860, rows
+  const rows = [50, 180, 300, 420];
+  const mapping = [
+    {o:'O7', h1:'H1', h2:'H2'},
+    {o:'O8', h1:'H3', h2:'H4'},
+    {o:'O9', h1:'H5', h2:'H6'},
+    {o:'O10', h1:'H7', h2:'H8'}
+  ];
+  const targets = {};
+  const bonds = [];
+  mapping.forEach((m,i)=>{
+    const y = rows[i];
+    targets[m.o] = {x:860, y:y-10};
+    targets[m.h1] = {x:832, y:y+22};
+    targets[m.h2] = {x:888, y:y+22};
+    bonds.push([m.h1, m.o]);
+    bonds.push([m.o, m.h2]);
+  });
+  return {targets, bonds};
+}
+
+// ---- Build atom registry ----
+const propane = propaneAtoms();
+const o2 = o2Atoms();
+const co2 = co2Targets();
+const h2o = h2oTargets();
+
+const start = {};
+propane.cs.forEach(a=> start[a.id]={x:a.x,y:a.y,type:'C'});
+propane.hs.forEach(a=> start[a.id]={x:a.x,y:a.y,type:'H'});
+o2.os.forEach(a=> start[a.id]={x:a.x,y:a.y,type:'O'});
+
+const end = {};
+Object.entries(co2.targets).forEach(([id,pos])=>{
+  const type = id.startsWith('C') ? 'C' : 'O';
+  end[id] = {x:pos.x, y:pos.y, type};
+});
+Object.entries(h2o.targets).forEach(([id,pos])=>{
+  const type = id.startsWith('H') ? 'H' : 'O';
+  end[id] = {x:pos.x, y:pos.y, type};
+});
+
+const reactantBonds = [...propane.bonds, ...o2.bonds];
+const productBonds = [...co2.bonds, ...h2o.bonds];
+
+// ---- Render atoms ----
+const atomEls = {};
+Object.keys(start).forEach(id=>{
+  const info = start[id];
+  const el = document.createElement('div');
+  el.className = 'atom ' + info.type;
+  const size = info.type==='C'?40:(info.type==='O'?32:20);
+  el.style.transform = `translate(${info.x - size/2}px, ${info.y - size/2}px)`;
+  atomLayer.appendChild(el);
+  atomEls[id] = el;
+});
+
+// ---- Render bonds as SVG lines (reactant state) ----
+function drawBonds(bondList, pos){
+  bondSvg.innerHTML = '';
+  bondList.forEach(([a,b])=>{
+    const pa = pos[a], pb = pos[b];
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', pa.x); line.setAttribute('y1', pa.y);
+    line.setAttribute('x2', pb.x); line.setAttribute('y2', pb.y);
+    line.setAttribute('stroke', 'rgba(234,242,248,.28)');
+    line.setAttribute('stroke-width', '4');
+    line.setAttribute('stroke-linecap','round');
+    line.classList.add('bondline');
+    bondSvg.appendChild(line);
+  });
+}
+drawBonds(reactantBonds, start);
+
+// ---- Animation sequence ----
+const steps = [
+  { t:0,    dur:1400, caption:'<b>Reaktan:</b> 1 molekul propana (C&#8323;H&#8328;) bertemu dengan 5 molekul oksigen (O&#8322;).' },
+  { t:1400, dur:1300, caption:'Molekul saling mendekat &mdash; ikatan lama mulai melemah (butuh energi aktivasi / percikan api).' },
+  { t:2700, dur:1600, caption:'<b>Pembakaran terjadi!</b> Ikatan C&ndash;H dan O=O putus, atom-atom terlepas sesaat.' },
+  { t:4300, dur:2200, caption:'Atom C, H, dan O menyusun ulang diri &mdash; ikatan baru terbentuk.' },
+  { t:6500, dur:1600, caption:'<b>Produk terbentuk:</b> 3 molekul CO&#8322; (karbon dioksida) dan 4 molekul H&#8322;O (air).' },
+  { t:8100, dur:1400, caption:'Reaksi ini <b>eksoterm</b>: melepaskan energi berupa panas dan cahaya (nyala api).' }
+];
+const totalDur = 9500;
+let timeouts = [];
+
+function clearAll(){ timeouts.forEach(clearTimeout); timeouts = []; }
+
+function setCaption(html){ caption.innerHTML = html; }
+
+function moveAtomsTo(target){
+  Object.keys(atomEls).forEach(id=>{
+    const info = target[id];
+    const size = info.type==='C'?40:(info.type==='O'?32:20);
+    atomEls[id].style.transform = `translate(${info.x - size/2}px, ${info.y - size/2}px)`;
+  });
+}
+
+function fadeBonds(){
+  bondSvg.querySelectorAll('.bondline').forEach(l=>{ l.style.transition='opacity .6s ease'; l.style.opacity='0'; });
+}
+
+function play(){
+  clearAll();
+  progressFill.style.width = '0%';
+  progressFill.style.transition = 'none';
+  requestAnimationFrame(()=>{
+    progressFill.style.transition = `width ${totalDur}ms linear`;
+    progressFill.style.width = '100%';
+  });
+
+  setCaption(steps[0].caption);
+  timeouts.push(setTimeout(()=> setCaption(steps[1].caption), steps[1].t));
+
+  timeouts.push(setTimeout(()=>{
+    setCaption(steps[2].caption);
+    fadeBonds();
+    burst.classList.remove('go'); void burst.offsetWidth; burst.classList.add('go');
+  }, steps[2].t));
+
+  timeouts.push(setTimeout(()=>{
+    setCaption(steps[3].caption);
+    moveAtomsTo(end);
+  }, steps[3].t));
+
+  timeouts.push(setTimeout(()=>{
+    setCaption(steps[4].caption);
+    drawBonds(productBonds, {...Object.fromEntries(Object.entries(end))});
+    bondSvg.querySelectorAll('.bondline').forEach(l=> l.style.opacity='0');
+    requestAnimationFrame(()=>{
+      bondSvg.querySelectorAll('.bondline').forEach(l=>{ l.style.transition='opacity .8s ease'; l.style.opacity='1'; });
+    });
+  }, steps[4].t));
+
+  timeouts.push(setTimeout(()=>{
+    setCaption(steps[5].caption);
+    energyTag.classList.add('show');
+  }, steps[5].t));
+}
+
+function resetScene(){
+  clearAll();
+  progressFill.style.transition = 'none';
+  progressFill.style.width = '0%';
+  moveAtomsTo(start);
+  drawBonds(reactantBonds, start);
+  bondSvg.querySelectorAll('.bondline').forEach(l=>{ l.style.opacity='1'; });
+  burst.classList.remove('go');
+  energyTag.classList.remove('show');
+  setCaption('Tekan <b>Mulai</b> untuk melihat animasi reaksi.');
+}
+
+document.getElementById('playBtn').addEventListener('click', ()=>{ resetScene(); requestAnimationFrame(play); });
+document.getElementById('resetBtn').addEventListener('click', resetScene);
+</script>
+</body>
+</html>
